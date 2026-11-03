@@ -16,7 +16,7 @@
       }
       d.textContent += msg + '\n';
     }
-    window.addEventListener('error', function (e) { show('[Error] ' + e.message + ' (baris ' + e.lineno + ':' + e.colno + ')'); });
+    window.addEventListener('error', function (e) { if (!e.lineno && e.message === 'Script error.') return; show('[Error] ' + e.message + ' (baris ' + e.lineno + ':' + e.colno + ')'); });
     window.addEventListener('unhandledrejection', function (e) { show('[Promise] ' + ((e.reason && e.reason.message) || e.reason)); });
   })();
   </script>
@@ -164,22 +164,98 @@ async function callApi(fn, args) {
   if (!cfg.API_URL || cfg.API_URL.indexOf('ISI_') > -1) {
     throw new Error('API_URL belum diisi. Buka file config.js lalu isi dengan URL Web App Apps Script (berakhiran /exec).');
   }
-  let res;
-  try {
-    res = await fetch(cfg.API_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify({ fn: fn, args: args })
-    });
-  } catch (e) {
-    throw new Error('Tidak dapat terhubung ke server. Periksa API_URL di config.js dan pastikan Web App di-deploy dengan akses "Anyone".');
+  const base = cfg.API_URL;
+  const sep = base.indexOf('?') > -1 ? '&' : '?';
+  /* Beberapa metode dicoba berurutan; satu metode gagal tidak langsung menjadi error */
+  const strategies = [];
+  if (fn === 'getPublicData') {
+    strategies.push(() => fetchJson(base + sep + 'fn=getPublicData&t=' + Date.now()));
+    strategies.push(() => jsonpLoad(base + sep + 'fn=getPublicData'));
   }
-  let json;
-  try { json = await res.json(); } catch (e) {
-    throw new Error('Respons server tidak valid. Pastikan Web App sudah di-deploy ulang (New version) dengan akses "Anyone".');
+  strategies.push(() => fetchJson(base, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+    body: JSON.stringify({ fn: fn, args: args })
+  }));
+  strategies.push(() => formPost(base, fn, args));
+
+  for (const run of strategies) {
+    let json;
+    try { json = await run(); } catch (e) { continue; }
+    if (json && typeof json.ok === 'boolean') {
+      if (!json.ok) throw new Error(json.error || 'Terjadi kesalahan di server.');
+      return json.data;
+    }
   }
-  if (!json.ok) throw new Error(json.error || 'Terjadi kesalahan di server.');
-  return json.data;
+  throw new Error('Tidak dapat terhubung ke server. Periksa koneksi internet, lalu coba lagi. Jika tetap gagal, coba buka dengan Chrome atau nonaktifkan pemblokir iklan/mode hemat data pada browser ini.');
+}
+
+async function fetchJson(url, opts) {
+  const res = await fetch(url, Object.assign({ credentials: 'omit', redirect: 'follow', cache: 'no-store' }, opts || {}));
+  return await res.json();
+}
+
+/* Cadangan 1: JSONP (memuat sebagai skrip, tidak terkena batasan fetch/CORS) */
+function jsonpLoad(url) {
+  return new Promise((resolve, reject) => {
+    const cb = '__pcb' + Date.now() + Math.floor(Math.random() * 1000000);
+    const s = document.createElement('script');
+    let done = false;
+    let timer = null;
+    const clean = () => {
+      done = true;
+      clearTimeout(timer);
+      window[cb] = undefined;
+      if (s.parentNode) s.parentNode.removeChild(s);
+    };
+    timer = setTimeout(() => { if (!done) { clean(); reject(new Error('timeout')); } }, 15000);
+    window[cb] = (data) => { if (!done) { clean(); resolve(data); } };
+    s.onerror = () => { if (!done) { clean(); reject(new Error('jsonp')); } };
+    s.src = url + '&callback=' + cb;
+    document.head.appendChild(s);
+  });
+}
+
+/* Cadangan 2: kirim form ke iframe tersembunyi, balasan diterima lewat postMessage */
+function formPost(url, fn, args) {
+  return new Promise((resolve, reject) => {
+    const id = 'f' + Date.now() + Math.floor(Math.random() * 1000000);
+    const iframe = document.createElement('iframe');
+    iframe.name = id;
+    iframe.style.display = 'none';
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = url;
+    form.target = id;
+    form.style.display = 'none';
+    const add = (k, v) => {
+      const i = document.createElement('input');
+      i.type = 'hidden'; i.name = k; i.value = v;
+      form.appendChild(i);
+    };
+    add('payload', JSON.stringify({ fn: fn, args: args, id: id }));
+    add('origin', window.location.origin);
+    let done = false;
+    let timer = null;
+    const finish = (cb, val) => {
+      if (done) return;
+      done = true;
+      clearTimeout(timer);
+      window.removeEventListener('message', onMsg);
+      if (iframe.parentNode) iframe.parentNode.removeChild(iframe);
+      if (form.parentNode) form.parentNode.removeChild(form);
+      cb(val);
+    };
+    const onMsg = (ev) => {
+      const d = ev.data;
+      if (d && d.__portal === id) finish(resolve, d.result);
+    };
+    timer = setTimeout(() => finish(reject, new Error('timeout')), 40000);
+    window.addEventListener('message', onMsg);
+    document.body.appendChild(iframe);
+    document.body.appendChild(form);
+    form.submit();
+  });
 }
 function esc(s) {
   return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
@@ -307,7 +383,19 @@ async function loadPublic(showSpinner) {
         <p class="text-xs font-semibold text-blue-700">Memuat data portal...</p>
       </div>`;
   }
-  const d = await gs('getPublicData');
+  /* Coba sampai 3 kali (jaringan sekolah/HP kadang putus sesaat) */
+  let d = null;
+  let lastErr = null;
+  for (let i = 0; i < 3 && !d; i++) {
+    try {
+      d = await gs('getPublicData');
+    } catch (e) {
+      lastErr = e;
+      if (String((e && e.message) || '').indexOf('API_URL belum') > -1) throw e;
+      await new Promise(r => setTimeout(r, 1200 * (i + 1)));
+    }
+  }
+  if (!d) throw lastErr;
   lastPublicJson = JSON.stringify({ ...d, serverNow: 0 });
   applyPublicData(d);
 }
