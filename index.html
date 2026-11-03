@@ -395,7 +395,7 @@ function renderClass(kelas) {
         </div>
         <p class="text-xs text-gray-600 mb-4 leading-relaxed">Pelaksanaan asesmen belum dimulai. Silakan pelajari panduan atau kerjakan soal simulasi untuk menguji sistem.</p>
         ${simLink ? `
-        <a href="${esc(simLink)}" target="_blank" rel="noopener" class="inline-flex items-center gap-2 bg-amber-500 hover:bg-amber-600 text-white text-xs md:text-sm font-bold px-4 py-2.5 rounded-xl transition shadow-sm">
+        <a href="${esc(simLink)}" class="inline-flex items-center gap-2 bg-amber-500 hover:bg-amber-600 text-white text-xs md:text-sm font-bold px-4 py-2.5 rounded-xl transition shadow-sm">
           <i data-lucide="file-text" style="width:16px;height:16px;"></i> Buka Soal Simulasi Kelas ${esc(kelas)}
         </a>` : '<p class="text-xs text-amber-700 italic">Belum ada link simulasi untuk kelas ini.</p>'}
       </div>`;
@@ -434,7 +434,7 @@ function renderClass(kelas) {
         } else if (subjLinks.length === 1 && !subjLinks[0].label) {
           const url = canAccess ? safeUrl(subjLinks[0].url) : '';
           content += url
-            ? `<a href="${esc(url)}" target="_blank" rel="noopener" class="flex items-center justify-between bg-blue-50/60 hover:bg-blue-100/80 rounded-xl px-4 py-3 border border-blue-100 transition group">
+            ? `<a href="${esc(url)}" class="flex items-center justify-between bg-blue-50/60 hover:bg-blue-100/80 rounded-xl px-4 py-3 border border-blue-100 transition group">
                 <span class="text-xs md:text-sm font-semibold text-gray-800">${esc(subj)}</span>
                 <span class="text-xs text-blue-600 font-bold flex items-center gap-1">Kerjakan <i data-lucide="external-link" style="width:14px;height:14px;"></i></span>
                </a>`
@@ -450,7 +450,7 @@ function renderClass(kelas) {
           subjLinks.forEach(l => {
             const url = canAccess ? safeUrl(l.url) : '';
             content += url
-              ? `<a href="${esc(url)}" target="_blank" rel="noopener" class="text-xs bg-white border border-blue-200 hover:bg-blue-600 hover:text-white rounded-lg px-3 py-1.5 font-semibold text-blue-700 transition shadow-sm flex items-center gap-1">
+              ? `<a href="${esc(url)}" class="text-xs bg-white border border-blue-200 hover:bg-blue-600 hover:text-white rounded-lg px-3 py-1.5 font-semibold text-blue-700 transition shadow-sm flex items-center gap-1">
                   ${esc(l.label || 'Link')} <i data-lucide="external-link" style="width:12px;height:12px;"></i>
                  </a>`
               : `<span class="text-xs bg-gray-100 border border-gray-200 rounded-lg px-3 py-1.5 font-medium text-gray-400 flex items-center gap-1">
@@ -464,11 +464,12 @@ function renderClass(kelas) {
     }
   }
 
-  if (simLink) {
+  /* Soal simulasi hanya tampil sebelum periode ujian dimulai */
+  if (simLink && !isExamPeriod()) {
     content += `
       <div class="mt-6 pt-4 border-t border-gray-200/60">
         <p class="text-xs text-gray-500 mb-2 font-medium">Uji Coba System / Ujian Latihan:</p>
-        <a href="${esc(simLink)}" target="_blank" rel="noopener" class="inline-flex items-center gap-1.5 text-xs text-blue-600 hover:text-blue-800 font-semibold bg-white border border-blue-200 px-3 py-2 rounded-lg">
+        <a href="${esc(simLink)}" class="inline-flex items-center gap-1.5 text-xs text-blue-600 hover:text-blue-800 font-semibold bg-white border border-blue-200 px-3 py-2 rounded-lg">
           <i data-lucide="file-text" style="width:14px;height:14px;"></i> Link Soal Simulasi Kelas ${esc(kelas)}
         </a>
       </div>`;
@@ -650,7 +651,7 @@ function renderRekapTab() {
             <span class="w-3 h-3 rounded-full bg-blue-600"></span>
             <h4 class="text-base md:text-lg font-bold text-gray-800">KELAS ${esc(cls)}</h4>
           </div>
-          ${sim ? `<a href="${esc(sim)}" target="_blank" rel="noopener" class="text-xs bg-amber-50 text-amber-700 border border-amber-200 px-3 py-1 rounded-lg font-semibold hover:bg-amber-100 transition flex items-center gap-1"><i data-lucide="file-text" style="width:12px;height:12px;"></i> Simulasi</a>` : '<span class="text-xs text-gray-400 italic">Simulasi belum diset</span>'}
+          ${sim ? `<a href="${esc(sim)}" class="text-xs bg-amber-50 text-amber-700 border border-amber-200 px-3 py-1 rounded-lg font-semibold hover:bg-amber-100 transition flex items-center gap-1"><i data-lucide="file-text" style="width:12px;height:12px;"></i> Simulasi</a>` : '<span class="text-xs text-gray-400 italic">Simulasi belum diset</span>'}
         </div>
         <div class="overflow-x-auto">
           <table class="w-full text-left border-collapse">
@@ -670,7 +671,7 @@ function renderRekapTab() {
         else badge = `<div class="flex flex-wrap gap-1.5 items-center">` + links.map(l => {
           const u = safeUrl(l.url);
           if (!u) return `<span class="text-[10px] bg-gray-100 text-gray-400 px-2 py-0.5 rounded font-semibold">Tanpa URL</span>`;
-          return `<a href="${esc(u)}" target="_blank" rel="noopener" class="inline-flex items-center gap-1 text-[11px] bg-emerald-50 hover:bg-emerald-600 hover:text-white text-emerald-700 px-2.5 py-1 rounded-lg font-bold border border-emerald-200 hover:border-emerald-600 transition">${esc(l.label || 'Buka Soal')} <i data-lucide="arrow-up-right" style="width:12px;height:12px;"></i></a>`;
+          return `<a href="${esc(u)}" class="inline-flex items-center gap-1 text-[11px] bg-emerald-50 hover:bg-emerald-600 hover:text-white text-emerald-700 px-2.5 py-1 rounded-lg font-bold border border-emerald-200 hover:border-emerald-600 transition">${esc(l.label || 'Buka Soal')} <i data-lucide="arrow-up-right" style="width:12px;height:12px;"></i></a>`;
         }).join('') + `</div>`;
         return `<div class="py-1.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-gray-50 last:border-b-0"><span class="font-semibold text-gray-800 text-xs md:text-sm">${esc(m)}</span>${badge}</div>`;
       }).join('') || '<span class="text-gray-400 italic">Tidak ada mapel</span>';
