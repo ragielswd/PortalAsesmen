@@ -1,0 +1,1108 @@
+<!doctype html>
+<html lang="id" class="h-full">
+<head>
+  <base target="_top">
+  <meta charset="UTF-8">
+  <script>
+  /* Penampil error di layar (membantu diagnosis bila halaman kosong) */
+  (function () {
+    function show(msg) {
+      var d = document.getElementById('boot-error');
+      if (!d) {
+        d = document.createElement('div');
+        d.id = 'boot-error';
+        d.style.cssText = 'position:fixed;left:8px;right:8px;bottom:8px;z-index:99999;background:#fef2f2;border:1px solid #fca5a5;color:#991b1b;font:12px/1.4 monospace;padding:10px;border-radius:8px;white-space:pre-wrap;max-height:40vh;overflow:auto';
+        (document.body || document.documentElement).appendChild(d);
+      }
+      d.textContent += msg + '\n';
+    }
+    window.addEventListener('error', function (e) { if (!e.lineno && e.message === 'Script error.') return; show('[Error] ' + e.message + ' (baris ' + e.lineno + ':' + e.colno + ')'); });
+    window.addEventListener('unhandledrejection', function (e) { show('[Promise] ' + ((e.reason && e.reason.message) || e.reason)); });
+  })();
+  </script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Portal Asesmen SMP Negeri 36 Samarinda</title>
+  <script src="config.js"></script>
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <script src="https://cdn.jsdelivr.net/npm/lucide@0.263.0/dist/umd/lucide.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Plus Jakarta Sans', sans-serif; box-sizing: border-box; }
+    .glass { background: rgba(255,255,255,0.88); backdrop-filter: blur(12px); }
+    .card-hover { transition: all 0.25s ease; }
+    .card-hover:hover { transform: translateY(-3px); box-shadow: 0 16px 32px rgba(0,0,0,0.08); }
+    .fade-in { animation: fadeIn 0.35s ease; }
+    @keyframes fadeIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
+    .pulse-dot { animation: pulse 2s infinite; }
+    @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.3; } }
+    .spinner { width:40px; height:40px; border:4px solid #bfdbfe; border-top-color:#2563eb; border-radius:50%; animation: spin 0.8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    /* Watermark logo sekolah */
+    #watermark { position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 0; display: flex; align-items: center; justify-content: center; pointer-events: none; user-select: none; }
+    #watermark img { width: min(72vw, 540px); height: auto; opacity: 0.08; filter: grayscale(35%); }
+    @media print { #watermark img { opacity: 0.06; } }
+  </style>
+</head>
+<body class="h-full">
+  <!-- Watermark: logo sekolah -->
+  <div id="watermark" aria-hidden="true">
+    <img src="https://iili.io/BxaPayB.png" alt="" draggable="false" onerror="this.style.display='none'">
+  </div>
+  <div id="app"class="min-h-full w-full overflow-auto bg-gradient-to-br from-sky-50 via-blue-50 to-indigo-100 flex flex-col justify-between">
+
+    <!-- Header -->
+    <header class="w-full bg-white/90 backdrop-blur-md shadow-sm border-b border-blue-100 sticky top-0 z-40">
+      <div class="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
+        <div class="flex items-center gap-3 cursor-pointer" onclick="goHome()">
+          <img src="https://iili.io/BxaPayB.png" alt="Logo" class="w-11 h-11 object-contain rounded-lg" loading="lazy" onerror="this.style.background='#3b82f6';this.alt='Logo';">
+          <div>
+            <h1 class="text-xs md:text-sm font-extrabold text-gray-800 tracking-tight">SMP NEGERI 36 SAMARINDA</h1>
+            <p class="text-xs text-blue-600 font-bold">Asesmen Sumatif Akhir Semester</p>
+          </div>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="hidden sm:inline-block bg-blue-50 text-blue-700 text-xs px-2.5 py-1 rounded-full font-semibold border border-blue-200" id="el-academic-year">TP 2025/2026</span>
+          <button id="admin-btn" onclick="handleAdminNav()" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-semibold transition">
+            <i data-lucide="shield" style="width:14px;height:14px;"></i> <span id="admin-btn-text">Admin</span>
+          </button>
+        </div>
+      </div>
+      <div class="max-w-6xl mx-auto px-4 pb-2 flex items-center justify-between text-[11px] text-gray-500 font-medium">
+        <span id="clock-display"></span>
+        <span id="access-status-badge" class="font-semibold"></span>
+      </div>
+    </header>
+
+    <!-- Main -->
+    <main class="relative z-10 max-w-6xl mx-auto px-4 py-6 flex-grow w-full" id="main-content">
+      <div class="flex flex-col items-center justify-center py-20 gap-3">
+        <div class="spinner"></div>
+        <p class="text-xs font-semibold text-blue-700">Memuat data portal...</p>
+      </div>
+    </main>
+
+    <!-- Loading overlay -->
+    <div id="loading-overlay" class="fixed inset-0 z-[60] hidden items-center justify-center bg-white/60 backdrop-blur-sm">
+      <div class="flex flex-col items-center gap-3">
+        <div class="spinner"></div>
+        <p class="text-xs font-semibold text-blue-700" id="loading-text">Memproses...</p>
+      </div>
+    </div>
+
+    <!-- Admin Login Modal -->
+    <div id="admin-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+      <div class="bg-white rounded-2xl p-6 w-full max-w-sm shadow-2xl fade-in border border-gray-100">
+        <div class="flex items-center gap-2 mb-3 text-blue-600">
+          <i data-lucide="lock" style="width:20px;height:20px;"></i>
+          <h3 class="font-bold text-gray-800 text-base">Akses Dashboard Admin</h3>
+        </div>
+        <p class="text-xs text-gray-500 mb-4">Masukkan kata sandi administrator untuk mengelola data portal.</p>
+        <input type="password" id="admin-pass" placeholder="Password Admin" class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm mb-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+        <p id="admin-error" class="text-red-500 text-xs mb-3 font-medium hidden">Password salah! Silakan coba lagi.</p>
+        <div class="flex gap-2">
+          <button id="admin-login-btn" onclick="checkAdmin()" class="flex-1 bg-blue-600 text-white text-sm font-semibold rounded-xl py-2.5 hover:bg-blue-700 transition shadow-sm">Masuk</button>
+          <button onclick="hideAdminModal()" class="flex-1 bg-gray-100 text-gray-600 text-sm font-semibold rounded-xl py-2.5 hover:bg-gray-200 transition">Batal</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Confirm Modal -->
+    <div id="custom-confirm-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+      <div class="bg-white rounded-2xl p-6 w-full max-w-sm shadow-2xl fade-in border border-gray-100 text-center">
+        <div class="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-3 text-red-600">
+          <i data-lucide="alert-triangle" style="width:24px;height:24px;"></i>
+        </div>
+        <h3 class="font-bold text-gray-800 text-base mb-1" id="confirm-modal-title">Konfirmasi Hapus</h3>
+        <p class="text-xs text-gray-500 mb-5 leading-relaxed" id="confirm-modal-msg">Apakah Anda yakin ingin menghapus data ini?</p>
+        <div class="flex gap-2">
+          <button id="confirm-modal-yes" class="flex-1 bg-red-600 hover:bg-red-700 text-white text-xs font-bold rounded-xl py-2.5 transition shadow-sm">Ya, Hapus</button>
+          <button onclick="hideConfirmModal()" class="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-600 text-xs font-bold rounded-xl py-2.5 transition">Batal</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Alert Modal -->
+    <div id="custom-alert-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+      <div class="bg-white rounded-2xl p-6 w-full max-w-sm shadow-2xl fade-in border border-gray-100 text-center">
+        <div class="w-12 h-12 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-3 text-emerald-600" id="alert-modal-icon">
+          <i data-lucide="check-circle" style="width:24px;height:24px;"></i>
+        </div>
+        <h3 class="font-bold text-gray-800 text-base mb-1" id="alert-modal-title">Informasi</h3>
+        <p class="text-xs text-gray-500 mb-5 leading-relaxed" id="alert-modal-msg"></p>
+        <button onclick="hideAlertModal()" class="w-full bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl py-2.5 transition shadow-sm">OK, Mengerti</button>
+      </div>
+    </div>
+
+    <footer class="relative z-10 w-full py-4 text-center text-xs text-gray-500 font-medium border-t border-blue-100/60 bg-white/50 backdrop-blur-sm mt-8">
+      © 2026 TIM ASESMEN SMP NEGERI 36 SAMARINDA
+    </footer>
+  </div>
+
+<script>
+/* =====================================================
+ *  STATE
+ * ===================================================== */
+let appData = { academicYear: '', accessStart: '07:00', accessEnd: '12:15', classes: [], subjects: [], schedule: [], simulationLinks: {}, links: {} };
+let currentView = 'home';       /* 'home' | nama kelas | 'admin' */
+let isAdmin = false;
+let adminToken = null;
+let adminActiveTab = 'rekap';
+let selectedLinkClass = '';
+let serverOffset = 0;            /* selisih jam server dengan jam perangkat (ms) */
+let lastPublicJson = '';
+const WITA_OFFSET = 8;
+
+/* =====================================================
+ *  UTIL
+ * ===================================================== */
+function hasGas() {
+  return typeof google !== 'undefined' && google.script && google.script.run;
+}
+function gs(fn, ...args) {
+  /* Di dalam Apps Script: pakai google.script.run. Di GitHub Pages: pakai fetch ke Web App. */
+  if (hasGas()) {
+    return new Promise((resolve, reject) => {
+      google.script.run.withSuccessHandler(resolve).withFailureHandler(reject)[fn](...args);
+    });
+  }
+  return callApi(fn, args);
+}
+async function callApi(fn, args) {
+  const cfg = window.PORTAL_CONFIG || {};
+  if (!cfg.API_URL || cfg.API_URL.indexOf('ISI_') > -1) {
+    throw new Error('API_URL belum diisi. Buka file config.js lalu isi dengan URL Web App Apps Script (berakhiran /exec).');
+  }
+  const base = cfg.API_URL;
+  const sep = base.indexOf('?') > -1 ? '&' : '?';
+  /* Beberapa metode dicoba berurutan; satu metode gagal tidak langsung menjadi error */
+  const strategies = [];
+  if (fn === 'getPublicData') {
+    strategies.push(() => fetchJson(base + sep + 'fn=getPublicData&t=' + Date.now()));
+    strategies.push(() => jsonpLoad(base + sep + 'fn=getPublicData'));
+  }
+  strategies.push(() => fetchJson(base, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+    body: JSON.stringify({ fn: fn, args: args })
+  }));
+  strategies.push(() => formPost(base, fn, args));
+
+  for (const run of strategies) {
+    let json;
+    try { json = await run(); } catch (e) { continue; }
+    if (json && typeof json.ok === 'boolean') {
+      if (!json.ok) throw new Error(json.error || 'Terjadi kesalahan di server.');
+      return json.data;
+    }
+  }
+  throw new Error('Tidak dapat terhubung ke server. Periksa koneksi internet, lalu coba lagi. Jika tetap gagal, coba buka dengan Chrome atau nonaktifkan pemblokir iklan/mode hemat data pada browser ini.');
+}
+
+async function fetchJson(url, opts) {
+  const res = await fetch(url, Object.assign({ credentials: 'omit', redirect: 'follow', cache: 'no-store' }, opts || {}));
+  return await res.json();
+}
+
+/* Cadangan 1: JSONP (memuat sebagai skrip, tidak terkena batasan fetch/CORS) */
+function jsonpLoad(url) {
+  return new Promise((resolve, reject) => {
+    const cb = '__pcb' + Date.now() + Math.floor(Math.random() * 1000000);
+    const s = document.createElement('script');
+    let done = false;
+    let timer = null;
+    const clean = () => {
+      done = true;
+      clearTimeout(timer);
+      window[cb] = undefined;
+      if (s.parentNode) s.parentNode.removeChild(s);
+    };
+    timer = setTimeout(() => { if (!done) { clean(); reject(new Error('timeout')); } }, 15000);
+    window[cb] = (data) => { if (!done) { clean(); resolve(data); } };
+    s.onerror = () => { if (!done) { clean(); reject(new Error('jsonp')); } };
+    s.src = url + '&callback=' + cb;
+    document.head.appendChild(s);
+  });
+}
+
+/* Cadangan 2: kirim form ke iframe tersembunyi, balasan diterima lewat postMessage */
+function formPost(url, fn, args) {
+  return new Promise((resolve, reject) => {
+    const id = 'f' + Date.now() + Math.floor(Math.random() * 1000000);
+    const iframe = document.createElement('iframe');
+    iframe.name = id;
+    iframe.style.display = 'none';
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = url;
+    form.target = id;
+    form.style.display = 'none';
+    const add = (k, v) => {
+      const i = document.createElement('input');
+      i.type = 'hidden'; i.name = k; i.value = v;
+      form.appendChild(i);
+    };
+    add('payload', JSON.stringify({ fn: fn, args: args, id: id }));
+    add('origin', window.location.origin);
+    let done = false;
+    let timer = null;
+    const finish = (cb, val) => {
+      if (done) return;
+      done = true;
+      clearTimeout(timer);
+      window.removeEventListener('message', onMsg);
+      if (iframe.parentNode) iframe.parentNode.removeChild(iframe);
+      if (form.parentNode) form.parentNode.removeChild(form);
+      cb(val);
+    };
+    const onMsg = (ev) => {
+      const d = ev.data;
+      if (d && d.__portal === id) finish(resolve, d.result);
+    };
+    timer = setTimeout(() => finish(reject, new Error('timeout')), 40000);
+    window.addEventListener('message', onMsg);
+    document.body.appendChild(iframe);
+    document.body.appendChild(form);
+    form.submit();
+  });
+}
+function esc(s) {
+  return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
+}
+const HTTP_RE = new RegExp('^https?:\\/' + '\\/', 'i');
+function isHttp(u) { return HTTP_RE.test(String(u || '')); }
+function safeUrl(u) { return isHttp(u) ? u : ''; }
+function fmtDate(s) { return s ? s.split('-').reverse().join('/') : '-'; }
+function icons() { try { if (window.lucide) lucide.createIcons(); } catch (e) { console.warn('lucide:', e); } }
+
+function showLoading(on, text) {
+  const el = document.getElementById('loading-overlay');
+  document.getElementById('loading-text').textContent = text || 'Memproses...';
+  el.classList.toggle('hidden', !on);
+  el.classList.toggle('flex', on);
+}
+
+/* ---------- Modals ---------- */
+let onConfirmCallback = null;
+function showConfirmModal(title, message, callback, btnText = 'Ya, Hapus') {
+  document.getElementById('confirm-modal-title').textContent = title;
+  document.getElementById('confirm-modal-msg').textContent = message;
+  document.getElementById('confirm-modal-yes').textContent = btnText;
+  onConfirmCallback = callback;
+  const m = document.getElementById('custom-confirm-modal');
+  m.classList.remove('hidden'); m.classList.add('flex'); icons();
+}
+function hideConfirmModal() {
+  const m = document.getElementById('custom-confirm-modal');
+  m.classList.add('hidden'); m.classList.remove('flex');
+  onConfirmCallback = null;
+}
+document.getElementById('confirm-modal-yes').addEventListener('click', () => {
+  const cb = onConfirmCallback;
+  hideConfirmModal();
+  if (typeof cb === 'function') cb();
+});
+
+function showAlertModal(title, message, isSuccess = true) {
+  document.getElementById('alert-modal-title').textContent = title || (isSuccess ? 'Berhasil' : 'Perhatian');
+  document.getElementById('alert-modal-msg').textContent = message;
+  const icon = document.getElementById('alert-modal-icon');
+  if (isSuccess) {
+    icon.className = 'w-12 h-12 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-3 text-emerald-600';
+    icon.innerHTML = '<i data-lucide="check-circle" style="width:24px;height:24px;"></i>';
+  } else {
+    icon.className = 'w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-3 text-amber-600';
+    icon.innerHTML = '<i data-lucide="alert-circle" style="width:24px;height:24px;"></i>';
+  }
+  const m = document.getElementById('custom-alert-modal');
+  m.classList.remove('hidden'); m.classList.add('flex'); icons();
+}
+function hideAlertModal() {
+  const m = document.getElementById('custom-alert-modal');
+  m.classList.add('hidden'); m.classList.remove('flex');
+}
+
+/* =====================================================
+ *  WAKTU (memakai jam server agar tidak bisa dimanipulasi)
+ * ===================================================== */
+function getWITA() {
+  const now = new Date(Date.now() + serverOffset);
+  const utc = now.getTime() + now.getTimezoneOffset() * 60000;
+  return new Date(utc + WITA_OFFSET * 3600000);
+}
+function formatWITA(d) {
+  const days = ['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'];
+  const months = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+  const p = n => String(n).padStart(2, '0');
+  return `${days[d.getDay()]}, ${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()} - ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())} WITA`;
+}
+function checkAccessTime() {
+  const w = getWITA();
+  const cur = w.getHours() * 60 + w.getMinutes();
+  const [sh, sm] = (appData.accessStart || '07:00').split(':').map(Number);
+  const [eh, em] = (appData.accessEnd || '12:15').split(':').map(Number);
+  const isOpen = cur >= sh * 60 + sm && cur <= eh * 60 + em;
+  const badge = document.getElementById('access-status-badge');
+  if (badge) {
+    if (isOpen) {
+      badge.className = 'font-semibold text-emerald-600 flex items-center gap-1';
+      badge.innerHTML = `<span class="pulse-dot w-2 h-2 rounded-full bg-emerald-500"></span> Akses Dibuka (${esc(appData.accessStart)} - ${esc(appData.accessEnd)} WITA)`;
+    } else {
+      badge.className = 'font-semibold text-red-500 flex items-center gap-1';
+      badge.innerHTML = `<span class="w-2 h-2 rounded-full bg-red-500"></span> Akses Ditutup (${esc(appData.accessStart)} - ${esc(appData.accessEnd)} WITA)`;
+    }
+  }
+  return isOpen;
+}
+function updateClock() {
+  document.getElementById('clock-display').textContent = formatWITA(getWITA());
+  checkAccessTime();
+  document.getElementById('el-academic-year').textContent = `TP ${appData.academicYear || ''}`;
+}
+setInterval(updateClock, 1000);
+
+function getExamStart() {
+  if (appData.schedule && appData.schedule.length) {
+    const dates = appData.schedule.map(s => s.date).sort();
+    return new Date(`${dates[0]}T00:00:00+08:00`);
+  }
+  return new Date('2999-01-01T00:00:00+08:00');
+}
+function isExamPeriod() { return getWITA() >= getExamStart(); }
+function getTodaySchedule() {
+  const w = getWITA();
+  const p = n => String(n).padStart(2, '0');
+  const ds = `${w.getFullYear()}-${p(w.getMonth() + 1)}-${p(w.getDate())}`;
+  return (appData.schedule || []).find(s => s.date === ds);
+}
+
+/* =====================================================
+ *  LOAD DATA PUBLIK
+ * ===================================================== */
+function applyPublicData(d) {
+  appData = d;
+  serverOffset = (d.serverNow || Date.now()) - Date.now();
+}
+
+async function loadPublic(showSpinner) {
+  if (showSpinner) {
+    document.getElementById('main-content').innerHTML = `
+      <div class="flex flex-col items-center justify-center py-20 gap-3">
+        <div class="spinner"></div>
+        <p class="text-xs font-semibold text-blue-700">Memuat data portal...</p>
+      </div>`;
+  }
+  /* Coba sampai 3 kali (jaringan sekolah/HP kadang putus sesaat) */
+  let d = null;
+  let lastErr = null;
+  for (let i = 0; i < 3 && !d; i++) {
+    try {
+      d = await gs('getPublicData');
+    } catch (e) {
+      lastErr = e;
+      if (String((e && e.message) || '').indexOf('API_URL belum') > -1) throw e;
+      await new Promise(r => setTimeout(r, 1200 * (i + 1)));
+    }
+  }
+  if (!d) throw lastErr;
+  lastPublicJson = JSON.stringify({ ...d, serverNow: 0 });
+  applyPublicData(d);
+}
+
+function showLoadError(e) {
+  document.getElementById('main-content').innerHTML = `
+    <div class="max-w-md mx-auto glass rounded-2xl p-6 text-center border border-red-200">
+      <p class="text-sm font-bold text-red-600 mb-1">Gagal memuat data</p>
+      <p class="text-xs text-gray-500 mb-4">${esc(e && e.message ? e.message : e)}</p>
+      <button onclick="init()" class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-4 py-2 rounded-xl">Coba Lagi</button>
+    </div>`;
+}
+
+async function goHome() {
+  if (isAdmin) return; /* admin keluar lewat tombol Keluar Admin */
+  renderHome();
+}
+
+/* Refresh otomatis tiap 60 detik (agar link muncul/terkunci sesuai jam akses) */
+setInterval(async () => {
+  if (isAdmin || document.hidden) return;
+  try {
+    const d = await gs('getPublicData');
+    const json = JSON.stringify({ ...d, serverNow: 0 });
+    applyPublicData(d);
+    if (json !== lastPublicJson) {
+      lastPublicJson = json;
+      if (currentView === 'home') renderHome();
+      else if (currentView !== 'admin') renderClass(currentView);
+    }
+  } catch (e) { /* diam, coba lagi di siklus berikutnya */ }
+}, 60000);
+
+/* =====================================================
+ *  HALAMAN SISWA
+ * ===================================================== */
+function renderHome() {
+  currentView = 'home';
+  const main = document.getElementById('main-content');
+  let buttons = '';
+  (appData.classes || []).forEach((cls, i) => {
+    buttons += `
+      <button onclick="renderClass(appData.classes[${i}])" class="card-hover glass rounded-2xl p-6 md:p-8 border border-blue-200 text-center group shadow-sm flex flex-col items-center justify-center">
+        <div class="w-16 h-16 bg-blue-100/80 rounded-2xl flex items-center justify-center mb-3 group-hover:bg-blue-600 transition duration-300 group-hover:scale-105">
+          <i data-lucide="book-open" style="width:28px;height:28px;" class="text-blue-600 group-hover:text-white transition"></i>
+        </div>
+        <h3 class="text-lg md:text-xl font-bold text-gray-800 tracking-tight">KELAS ${esc(cls)}</h3>
+        <p class="text-xs text-gray-500 mt-1 font-medium">Klik untuk masuk ruang ujian</p>
+      </button>`;
+  });
+  main.innerHTML = `
+    <div class="text-center mb-8 fade-in">
+      <h2 class="text-2xl md:text-3xl font-extrabold text-gray-800 mb-2">Portal Asesmen Sumatif</h2>
+      <p class="text-gray-500 text-xs md:text-sm max-w-md mx-auto">Pilih tingkat kelas Anda untuk mengakses link lembar jawaban dan soal ujian online.</p>
+    </div>
+    <div class="grid grid-cols-1 sm:grid-cols-2 ${appData.classes.length > 2 ? 'lg:grid-cols-3' : ''} gap-4 max-w-2xl mx-auto fade-in">
+      ${buttons || '<p class="text-center text-xs text-gray-400 col-span-full">Belum ada kelas yang tersedia.</p>'}
+    </div>`;
+  icons();
+  updateClock();
+}
+
+function renderClass(kelas) {
+  currentView = kelas;
+  const main = document.getElementById('main-content');
+  const classLinks = (appData.links && appData.links[kelas]) || {};
+  const simLink = safeUrl((appData.simulationLinks && appData.simulationLinks[kelas]) || '');
+
+  let content = `
+    <div class="fade-in max-w-3xl mx-auto">
+      <button onclick="renderHome()" class="flex items-center gap-1.5 text-xs md:text-sm text-gray-600 hover:text-blue-600 mb-4 font-semibold transition">
+        <i data-lucide="arrow-left" style="width:16px;height:16px;"></i> Kembali ke Halaman Utama
+      </button>
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="text-xl md:text-2xl font-bold text-gray-800">Ruang Ujian Kelas ${esc(kelas)}</h2>
+        <span class="text-xs bg-blue-100 text-blue-700 font-bold px-3 py-1 rounded-full">Kelas ${esc(kelas)}</span>
+      </div>`;
+
+  if (!isExamPeriod()) {
+    content += `
+      <div class="glass rounded-2xl p-6 border border-amber-200/80 shadow-sm mb-4">
+        <div class="flex items-center gap-2 mb-3">
+          <span class="pulse-dot w-2.5 h-2.5 rounded-full bg-amber-500"></span>
+          <p class="text-sm font-bold text-amber-800">Periode Ujian Belum Dimulai</p>
+        </div>
+        <p class="text-xs text-gray-600 mb-4 leading-relaxed">Pelaksanaan asesmen belum dimulai. Silakan pelajari panduan atau kerjakan soal simulasi untuk menguji sistem.</p>
+        ${simLink ? `
+        <a href="${esc(simLink)}" class="inline-flex items-center gap-2 bg-amber-500 hover:bg-amber-600 text-white text-xs md:text-sm font-bold px-4 py-2.5 rounded-xl transition shadow-sm">
+          <i data-lucide="file-text" style="width:16px;height:16px;"></i> Buka Soal Simulasi Kelas ${esc(kelas)}
+        </a>` : '<p class="text-xs text-amber-700 italic">Belum ada link simulasi untuk kelas ini.</p>'}
+      </div>`;
+  } else {
+    const today = getTodaySchedule();
+    if (!today) {
+      content += `
+        <div class="glass rounded-2xl p-6 border border-gray-200 text-center">
+          <i data-lucide="calendar-x" style="width:32px;height:32px;" class="mx-auto text-gray-400 mb-2"></i>
+          <p class="text-sm font-semibold text-gray-700">Tidak ada jadwal asesmen untuk hari ini.</p>
+          <p class="text-xs text-gray-400 mt-1">Silakan periksa kembali kalender jadwal ujian.</p>
+        </div>`;
+    } else {
+      const canAccess = checkAccessTime();
+      content += `
+        <div class="glass rounded-2xl p-5 border border-blue-200 shadow-sm mb-4">
+          <div class="flex items-center justify-between border-b border-gray-100 pb-3 mb-4">
+            <div class="flex items-center gap-2">
+              <span class="pulse-dot w-2.5 h-2.5 rounded-full ${canAccess ? 'bg-emerald-500' : 'bg-red-500'}"></span>
+              <p class="text-sm font-bold text-gray-800">${esc(today.day)}, ${fmtDate(today.date)}</p>
+            </div>
+            <span class="text-xs font-semibold ${canAccess ? 'text-emerald-600 bg-emerald-50' : 'text-red-500 bg-red-50'} px-2.5 py-1 rounded-md">
+              ${canAccess ? 'Akses Aktif' : 'Akses Waktu Habis'}
+            </span>
+          </div>
+          <div class="space-y-3">`;
+
+      today.subjects.forEach(subj => {
+        const subjLinks = classLinks[subj] || [];
+        if (subjLinks.length === 0) {
+          content += `
+            <div class="flex items-center justify-between bg-gray-50 rounded-xl px-4 py-3 border border-gray-100">
+              <span class="text-xs md:text-sm font-semibold text-gray-700">${esc(subj)}</span>
+              <span class="text-xs text-amber-600 font-medium bg-amber-50 px-2 py-0.5 rounded">Link Belum Diisi</span>
+            </div>`;
+        } else if (subjLinks.length === 1 && !subjLinks[0].label) {
+          const url = canAccess ? safeUrl(subjLinks[0].url) : '';
+          content += url
+            ? `<a href="${esc(url)}" class="flex items-center justify-between bg-blue-50/60 hover:bg-blue-100/80 rounded-xl px-4 py-3 border border-blue-100 transition group">
+                <span class="text-xs md:text-sm font-semibold text-gray-800">${esc(subj)}</span>
+                <span class="text-xs text-blue-600 font-bold flex items-center gap-1">Kerjakan <i data-lucide="external-link" style="width:14px;height:14px;"></i></span>
+               </a>`
+            : `<div class="flex items-center justify-between bg-gray-50 rounded-xl px-4 py-3 border border-gray-200 opacity-60">
+                <span class="text-xs md:text-sm font-semibold text-gray-600">${esc(subj)}</span>
+                <span class="text-xs text-gray-400 flex items-center gap-1"><i data-lucide="lock" style="width:14px;height:14px;"></i> Terkunci</span>
+               </div>`;
+        } else {
+          content += `
+            <div class="bg-blue-50/40 border border-blue-100 rounded-xl px-4 py-3">
+              <p class="text-xs md:text-sm font-semibold text-gray-800 mb-2">${esc(subj)}</p>
+              <div class="flex flex-wrap gap-2">`;
+          subjLinks.forEach(l => {
+            const url = canAccess ? safeUrl(l.url) : '';
+            content += url
+              ? `<a href="${esc(url)}" class="text-xs bg-white border border-blue-200 hover:bg-blue-600 hover:text-white rounded-lg px-3 py-1.5 font-semibold text-blue-700 transition shadow-sm flex items-center gap-1">
+                  ${esc(l.label || 'Link')} <i data-lucide="external-link" style="width:12px;height:12px;"></i>
+                 </a>`
+              : `<span class="text-xs bg-gray-100 border border-gray-200 rounded-lg px-3 py-1.5 font-medium text-gray-400 flex items-center gap-1">
+                  ${esc(l.label || 'Link')} <i data-lucide="lock" style="width:12px;height:12px;"></i>
+                 </span>`;
+          });
+          content += `</div></div>`;
+        }
+      });
+      content += `</div></div>`;
+    }
+  }
+
+  /* Soal simulasi hanya tampil sebelum periode ujian dimulai */
+  if (simLink && !isExamPeriod()) {
+    content += `
+      <div class="mt-6 pt-4 border-t border-gray-200/60">
+        <p class="text-xs text-gray-500 mb-2 font-medium">Uji Coba System / Ujian Latihan:</p>
+        <a href="${esc(simLink)}" class="inline-flex items-center gap-1.5 text-xs text-blue-600 hover:text-blue-800 font-semibold bg-white border border-blue-200 px-3 py-2 rounded-lg">
+          <i data-lucide="file-text" style="width:14px;height:14px;"></i> Link Soal Simulasi Kelas ${esc(kelas)}
+        </a>
+      </div>`;
+  }
+  content += `</div>`;
+  main.innerHTML = content;
+  icons();
+}
+
+/* =====================================================
+ *  LOGIN / LOGOUT ADMIN
+ * ===================================================== */
+function handleAdminNav() {
+  if (isAdmin) logoutAdmin();
+  else showAdminPrompt();
+}
+function showAdminPrompt() {
+  const m = document.getElementById('admin-modal');
+  m.classList.remove('hidden'); m.classList.add('flex');
+  document.getElementById('admin-pass').value = '';
+  const err = document.getElementById('admin-error');
+  err.classList.add('hidden');
+  err.textContent = 'Password salah! Silakan coba lagi.';
+  setTimeout(() => document.getElementById('admin-pass').focus(), 100);
+}
+function hideAdminModal() {
+  const m = document.getElementById('admin-modal');
+  m.classList.add('hidden'); m.classList.remove('flex');
+}
+async function checkAdmin() {
+  const pass = document.getElementById('admin-pass').value;
+  const err = document.getElementById('admin-error');
+  const btn = document.getElementById('admin-login-btn');
+  err.classList.add('hidden');
+  btn.disabled = true; btn.textContent = 'Memeriksa...';
+  try {
+    const res = await gs('adminLogin', pass);
+    if (!res.ok) {
+      err.textContent = res.message || 'Password salah! Silakan coba lagi.';
+      err.classList.remove('hidden');
+      return;
+    }
+    adminToken = res.token;
+    const data = await gs('adminGetData', adminToken);
+    appData = data;
+    isAdmin = true;
+    hideAdminModal();
+    adminActiveTab = 'rekap';
+    selectedLinkClass = (appData.classes || [])[0] || '';
+    renderAdminDashboard();
+  } catch (e) {
+    err.textContent = 'Terjadi kesalahan: ' + (e && e.message ? e.message : e);
+    err.classList.remove('hidden');
+  } finally {
+    btn.disabled = false; btn.textContent = 'Masuk';
+  }
+}
+document.getElementById('admin-pass').addEventListener('keydown', e => { if (e.key === 'Enter') checkAdmin(); });
+
+async function logoutAdmin() {
+  const tk = adminToken;
+  isAdmin = false; adminToken = null;
+  document.getElementById('admin-btn-text').textContent = 'Admin';
+  gs('adminLogout', tk).catch(() => {});
+  try { await loadPublic(true); renderHome(); } catch (e) { showLoadError(e); }
+}
+
+/* Penanganan error server untuk aksi admin */
+async function handleAdminError(e) {
+  const msg = (e && e.message) ? e.message : String(e);
+  if (msg.indexOf('SESSION_EXPIRED') > -1) {
+    showAlertModal('Sesi Berakhir', 'Sesi admin telah berakhir. Silakan masuk kembali.', false);
+    isAdmin = false; adminToken = null;
+    document.getElementById('admin-btn-text').textContent = 'Admin';
+    try { await loadPublic(true); renderHome(); } catch (x) { showLoadError(x); }
+    return;
+  }
+  showAlertModal('Gagal Menyimpan', msg.replace(/^Error:\s*/, ''), false);
+  /* sinkronkan ulang dengan data di server */
+  try { appData = await gs('adminGetData', adminToken); renderAdminDashboard(); } catch (x) {}
+}
+
+/* Simpan seluruh data ke Spreadsheet */
+async function persist(title, message, extra) {
+  showLoading(true, 'Menyimpan ke Spreadsheet...');
+  try {
+    const payload = {
+      academicYear: appData.academicYear,
+      accessStart: appData.accessStart,
+      accessEnd: appData.accessEnd,
+      classes: appData.classes,
+      subjects: appData.subjects,
+      schedule: appData.schedule,
+      simulationLinks: appData.simulationLinks,
+      links: appData.links
+    };
+    if (extra && extra.newPass) payload.newPass = extra.newPass;
+    appData = await gs('adminSave', adminToken, payload);
+    if (selectedLinkClass && appData.classes.indexOf(selectedLinkClass) === -1) selectedLinkClass = appData.classes[0] || '';
+    showLoading(false);
+    renderAdminDashboard();
+    if (message) showAlertModal(title || 'Berhasil', message);
+    return true;
+  } catch (e) {
+    showLoading(false);
+    await handleAdminError(e);
+    return false;
+  }
+}
+
+/* =====================================================
+ *  DASHBOARD ADMIN
+ * ===================================================== */
+function renderAdminDashboard() {
+  currentView = 'admin';
+  document.getElementById('admin-btn-text').textContent = 'Keluar Admin';
+  const tabs = [
+    ['rekap', '📊 Rekap Jadwal'], ['settings', '⚙️ General & Akses'], ['classes', '🏫 Kelola Kelas'],
+    ['subjects', '📚 Kelola Mapel'], ['schedule', '📅 Jadwal Ujian'], ['links', '🔗 Link Soal Ujian']
+  ];
+  const nav = `<div class="flex flex-wrap gap-2 mb-6 border-b border-gray-200 pb-3">` + tabs.map(([k, label]) => `
+    <button onclick="switchAdminTab('${k}')" class="px-4 py-2 rounded-xl text-xs md:text-sm font-bold transition ${adminActiveTab === k ? 'bg-blue-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-100'}">${label}</button>`).join('') + `</div>`;
+
+  let body = '';
+  if (adminActiveTab === 'rekap') body = renderRekapTab();
+  else if (adminActiveTab === 'settings') body = renderSettingsTab();
+  else if (adminActiveTab === 'classes') body = renderClassesTab();
+  else if (adminActiveTab === 'subjects') body = renderSubjectsTab();
+  else if (adminActiveTab === 'schedule') body = renderScheduleTab();
+  else if (adminActiveTab === 'links') body = renderLinksTab();
+
+  document.getElementById('main-content').innerHTML = `
+    <div class="fade-in max-w-4xl mx-auto">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
+        <div>
+          <h2 class="text-xl md:text-2xl font-extrabold text-gray-800">Dashboard Administrator</h2>
+          <p class="text-xs text-gray-500">Data tersimpan di Google Spreadsheet · kelola jadwal, mapel, link soal, dan batas waktu akses</p>
+        </div>
+        <button onclick="resetDataDefault()" class="self-start sm:self-auto text-xs bg-red-50 text-red-600 hover:bg-red-100 font-bold px-3 py-2 rounded-xl border border-red-200 transition">
+          Kosongkan Data
+        </button>
+      </div>
+      ${nav}
+      <div>${body}</div>
+    </div>`;
+  icons();
+  updateClock();
+}
+function switchAdminTab(t) { adminActiveTab = t; renderAdminDashboard(); }
+
+/* ---------- Tab Rekap ---------- */
+function renderRekapTab() {
+  const order = { 'VII': 7, 'VIII': 8, 'IX': 9, 'X': 10, 'XI': 11, 'XII': 12 };
+  const classes = [...(appData.classes || [])].sort((a, b) => ((order[a] || 99) - (order[b] || 99)) || a.localeCompare(b));
+  const schedule = [...(appData.schedule || [])].sort((a, b) => a.date.localeCompare(b.date));
+  if (!classes.length) return `<div class="bg-white rounded-2xl p-6 shadow-sm text-center text-gray-500 text-sm">Belum ada kelas yang terdaftar.</div>`;
+  if (!schedule.length) return `<div class="bg-white rounded-2xl p-6 shadow-sm text-center text-gray-500 text-sm">Belum ada jadwal ujian yang diinput.</div>`;
+
+  let html = `
+    <div class="space-y-6">
+      <div class="bg-blue-600 text-white rounded-2xl p-5 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h3 class="text-lg font-extrabold">Rekap Jadwal Ujian Pelajaran</h3>
+          <p class="text-xs text-blue-100 mt-0.5">Disusun berdasarkan tingkat kelas dan tanggal/hari terkecil</p>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="bg-white/20 text-white text-xs font-bold px-3 py-1.5 rounded-xl">${classes.length} Kelas</span>
+          <span class="bg-white/20 text-white text-xs font-bold px-3 py-1.5 rounded-xl">${schedule.length} Hari Ujian</span>
+        </div>
+      </div>`;
+
+  classes.forEach(cls => {
+    const classLinks = (appData.links && appData.links[cls]) || {};
+    const sim = safeUrl((appData.simulationLinks && appData.simulationLinks[cls]) || '');
+    html += `
+      <div class="bg-white rounded-2xl p-5 md:p-6 shadow-sm border border-gray-200/80 space-y-4">
+        <div class="flex items-center justify-between border-b border-gray-100 pb-3">
+          <div class="flex items-center gap-2">
+            <span class="w-3 h-3 rounded-full bg-blue-600"></span>
+            <h4 class="text-base md:text-lg font-bold text-gray-800">KELAS ${esc(cls)}</h4>
+          </div>
+          ${sim ? `<a href="${esc(sim)}" class="text-xs bg-amber-50 text-amber-700 border border-amber-200 px-3 py-1 rounded-lg font-semibold hover:bg-amber-100 transition flex items-center gap-1"><i data-lucide="file-text" style="width:12px;height:12px;"></i> Simulasi</a>` : '<span class="text-xs text-gray-400 italic">Simulasi belum diset</span>'}
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-left border-collapse">
+            <thead>
+              <tr class="bg-gray-50 border-b border-gray-200 text-[11px] font-extrabold text-gray-600 uppercase tracking-wider">
+                <th class="py-2.5 px-3 text-center w-10">No</th>
+                <th class="py-2.5 px-3">Hari & Tanggal</th>
+                <th class="py-2.5 px-3">Mata Pelajaran & Link Google Form</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100 text-xs">`;
+    schedule.forEach((s, i) => {
+      const subj = (s.subjects || []).map(m => {
+        const links = classLinks[m] || [];
+        let badge;
+        if (!links.length) badge = `<span class="inline-flex items-center text-[10px] bg-red-50 text-red-600 px-2 py-0.5 rounded font-semibold border border-red-100">Belum ada link</span>`;
+        else badge = `<div class="flex flex-wrap gap-1.5 items-center">` + links.map(l => {
+          const u = safeUrl(l.url);
+          if (!u) return `<span class="text-[10px] bg-gray-100 text-gray-400 px-2 py-0.5 rounded font-semibold">Tanpa URL</span>`;
+          return `<a href="${esc(u)}" class="inline-flex items-center gap-1 text-[11px] bg-emerald-50 hover:bg-emerald-600 hover:text-white text-emerald-700 px-2.5 py-1 rounded-lg font-bold border border-emerald-200 hover:border-emerald-600 transition">${esc(l.label || 'Buka Soal')} <i data-lucide="arrow-up-right" style="width:12px;height:12px;"></i></a>`;
+        }).join('') + `</div>`;
+        return `<div class="py-1.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-gray-50 last:border-b-0"><span class="font-semibold text-gray-800 text-xs md:text-sm">${esc(m)}</span>${badge}</div>`;
+      }).join('') || '<span class="text-gray-400 italic">Tidak ada mapel</span>';
+      html += `
+        <tr class="hover:bg-blue-50/30 transition">
+          <td class="py-3 px-3 font-bold text-gray-400 text-center w-10">${i + 1}</td>
+          <td class="py-3 px-3 whitespace-nowrap"><div class="text-xs text-blue-700 font-extrabold">${esc(s.day)}</div><div class="text-[11px] text-gray-500">${fmtDate(s.date)}</div></td>
+          <td class="py-3 px-3"><div class="space-y-1">${subj}</div></td>
+        </tr>`;
+    });
+    html += `</tbody></table></div></div>`;
+  });
+  return html + `</div>`;
+}
+
+/* ---------- Tab Pengaturan ---------- */
+function renderSettingsTab() {
+  return `
+    <div class="bg-white rounded-2xl p-5 md:p-6 shadow-sm border border-gray-200/80 space-y-6">
+      <div>
+        <h3 class="text-sm font-bold text-gray-800 mb-1">Pengaturan Tahun Pelajaran & Akses</h3>
+        <p class="text-xs text-gray-500 mb-4">Atur informasi tahun ajaran dan jam operasional web setiap harinya.</p>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div>
+            <label class="block text-xs font-bold text-gray-700 mb-1">Tahun Pelajaran</label>
+            <input type="text" id="cfg-year" value="${esc(appData.academicYear)}" placeholder="2025/2026" class="w-full border border-gray-300 rounded-xl px-3 py-2 text-xs md:text-sm font-semibold">
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-gray-700 mb-1">Jam Buka Akses (WITA)</label>
+            <input type="time" id="cfg-start" value="${esc(appData.accessStart)}" class="w-full border border-gray-300 rounded-xl px-3 py-2 text-xs md:text-sm font-semibold">
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-gray-700 mb-1">Batas Waktu Akses (WITA)</label>
+            <input type="time" id="cfg-end" value="${esc(appData.accessEnd)}" class="w-full border border-gray-300 rounded-xl px-3 py-2 text-xs md:text-sm font-semibold">
+          </div>
+        </div>
+      </div>
+      <hr class="border-gray-100">
+      <div>
+        <h3 class="text-sm font-bold text-gray-800 mb-1">Keamanan Admin</h3>
+        <p class="text-xs text-gray-500 mb-3">Isi hanya jika ingin mengganti kata sandi (minimal 6 karakter). Kosongkan jika tidak diubah.</p>
+        <div class="max-w-xs">
+          <label class="block text-xs font-bold text-gray-700 mb-1">Password Admin Baru</label>
+          <input type="password" id="cfg-pass" autocomplete="new-password" placeholder="Biarkan kosong bila tidak diganti" class="w-full border border-gray-300 rounded-xl px-3 py-2 text-xs md:text-sm font-semibold">
+        </div>
+      </div>
+      <div class="pt-2">
+        <button onclick="saveSettingsTab()" class="bg-blue-600 hover:bg-blue-700 text-white text-xs md:text-sm font-bold px-5 py-2.5 rounded-xl transition shadow-sm">Simpan Pengaturan</button>
+      </div>
+    </div>`;
+}
+async function saveSettingsTab() {
+  const pass = document.getElementById('cfg-pass').value;
+  if (pass && pass.length < 6) { showAlertModal('Perhatian', 'Password baru minimal 6 karakter.', false); return; }
+  appData.academicYear = document.getElementById('cfg-year').value.trim() || '2025/2026';
+  appData.accessStart = document.getElementById('cfg-start').value || '07:00';
+  appData.accessEnd = document.getElementById('cfg-end').value || '12:15';
+  await persist('Berhasil', 'Pengaturan portal berhasil disimpan ke Spreadsheet!', { newPass: pass });
+}
+
+/* ---------- Tab Kelas ---------- */
+function renderClassesTab() {
+  const list = (appData.classes || []).map((c, i) => `
+    <div class="flex items-center justify-between bg-gray-50 border border-gray-200 rounded-xl px-4 py-3">
+      <span class="text-sm font-bold text-gray-800">Kelas ${esc(c)}</span>
+      <button onclick="removeClass(${i})" class="text-xs text-red-500 hover:text-red-700 font-semibold bg-red-50 hover:bg-red-100 px-2.5 py-1 rounded-lg transition">Hapus</button>
+    </div>`).join('');
+  return `
+    <div class="bg-white rounded-2xl p-5 md:p-6 shadow-sm border border-gray-200/80 space-y-6">
+      <div>
+        <h3 class="text-sm font-bold text-gray-800 mb-1">Kelola Tingkat Kelas</h3>
+        <p class="text-xs text-gray-500 mb-4">Tambah atau hapus tingkat kelas yang akan ditampilkan di portal.</p>
+        <div class="flex gap-2 max-w-md mb-6">
+          <input type="text" id="new-class-input" placeholder="Contoh: IX" class="flex-1 border border-gray-300 rounded-xl px-3 py-2 text-xs md:text-sm font-semibold uppercase">
+          <button onclick="addClass()" class="bg-blue-600 hover:bg-blue-700 text-white text-xs md:text-sm font-bold px-4 py-2 rounded-xl transition">+ Tambah Kelas</button>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-xl">${list || '<p class="text-xs text-gray-400">Belum ada kelas.</p>'}</div>
+      </div>
+    </div>`;
+}
+async function addClass() {
+  const val = (document.getElementById('new-class-input').value || '').trim().toUpperCase();
+  if (!val) return;
+  if (appData.classes.includes(val)) { showAlertModal('Perhatian', `Kelas ${val} sudah terdaftar!`, false); return; }
+  appData.classes.push(val);
+  if (!selectedLinkClass) selectedLinkClass = val;
+  await persist('Berhasil', `Kelas ${val} berhasil ditambahkan.`);
+}
+function removeClass(i) {
+  const cls = appData.classes[i];
+  showConfirmModal('Hapus Kelas', `Apakah Anda yakin ingin menghapus Kelas ${cls}? Seluruh link soal dan simulasi yang terhubung dengan kelas ini juga akan dibersihkan.`, async () => {
+    appData.classes = appData.classes.filter(c => c !== cls);
+    delete appData.simulationLinks[cls];
+    delete appData.links[cls];
+    await persist('Berhasil', `Kelas ${cls} berhasil dihapus.`);
+  });
+}
+
+/* ---------- Tab Mapel ---------- */
+function renderSubjectsTab() {
+  const list = (appData.subjects || []).map((s, i) => `
+    <div class="flex items-center justify-between bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5">
+      <span class="text-xs md:text-sm font-semibold text-gray-800">${esc(s)}</span>
+      <button onclick="removeSubject(${i})" class="text-xs text-red-500 hover:text-red-700 font-semibold bg-red-50 px-2 py-1 rounded-lg transition">Hapus</button>
+    </div>`).join('');
+  return `
+    <div class="bg-white rounded-2xl p-5 md:p-6 shadow-sm border border-gray-200/80 space-y-6">
+      <div>
+        <h3 class="text-sm font-bold text-gray-800 mb-1">Kelola Mata Pelajaran</h3>
+        <p class="text-xs text-gray-500 mb-4">Daftar mata pelajaran yang diuji di sekolah.</p>
+        <div class="flex gap-2 max-w-md mb-6">
+          <input type="text" id="new-subj-input" placeholder="Nama Mata Pelajaran" class="flex-1 border border-gray-300 rounded-xl px-3 py-2 text-xs md:text-sm font-semibold">
+          <button onclick="addSubject()" class="bg-blue-600 hover:bg-blue-700 text-white text-xs md:text-sm font-bold px-4 py-2 rounded-xl transition">+ Tambah Mapel</button>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">${list || '<p class="text-xs text-gray-400">Belum ada mata pelajaran.</p>'}</div>
+      </div>
+    </div>`;
+}
+async function addSubject() {
+  const val = (document.getElementById('new-subj-input').value || '').trim().replace(/\|/g, '/');
+  if (!val) return;
+  if (appData.subjects.includes(val)) { showAlertModal('Perhatian', `Mata pelajaran "${val}" sudah ada!`, false); return; }
+  appData.subjects.push(val);
+  await persist('Berhasil', `Mata pelajaran "${val}" berhasil ditambahkan.`);
+}
+function removeSubject(i) {
+  const subj = appData.subjects[i];
+  showConfirmModal('Hapus Mata Pelajaran', `Apakah Anda yakin ingin menghapus mata pelajaran "${subj}"? Mapel ini juga akan dibersihkan dari jadwal ujian dan daftar link soal.`, async () => {
+    appData.subjects = appData.subjects.filter(s => s !== subj);
+    (appData.schedule || []).forEach(s => { s.subjects = (s.subjects || []).filter(x => x !== subj); });
+    Object.keys(appData.links || {}).forEach(c => { if (appData.links[c]) delete appData.links[c][subj]; });
+    await persist('Berhasil', `Mata pelajaran "${subj}" berhasil dihapus.`);
+  });
+}
+
+/* ---------- Tab Jadwal ---------- */
+function renderScheduleTab() {
+  const rows = (appData.schedule || []).map(s => `
+    <div class="bg-gray-50 border border-gray-200 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+      <div>
+        <span class="text-sm font-bold text-gray-800">${esc(s.day)}, ${fmtDate(s.date)}</span>
+        <div class="flex flex-wrap gap-1.5 mt-2">
+          ${(s.subjects || []).map(x => `<span class="bg-blue-50 text-blue-700 border border-blue-200 text-[11px] font-semibold px-2 py-0.5 rounded-md">${esc(x)}</span>`).join(' ') || '<span class="text-xs text-gray-400 italic">Belum ada mapel dipilih</span>'}
+        </div>
+      </div>
+      <button onclick="removeSchedule('${esc(s.id)}')" class="text-xs text-red-500 hover:text-red-700 font-semibold bg-red-50 border border-red-100 px-3 py-1.5 rounded-xl transition self-end sm:self-auto">Hapus Hari</button>
+    </div>`).join('');
+
+  const checks = (appData.subjects || []).map((s, i) => `
+    <label class="flex items-center gap-2 text-xs font-semibold text-gray-700 bg-gray-50 border border-gray-200 p-2 rounded-xl cursor-pointer hover:bg-blue-50/50">
+      <input type="checkbox" name="sched-subj-check" value="${i}" class="rounded text-blue-600"><span>${esc(s)}</span>
+    </label>`).join('');
+
+  return `
+    <div class="bg-white rounded-2xl p-5 md:p-6 shadow-sm border border-gray-200/80 space-y-6">
+      <div>
+        <h3 class="text-sm font-bold text-gray-800 mb-1">Tambah Hari & Jadwal Ujian</h3>
+        <p class="text-xs text-gray-500 mb-4">Tentukan tanggal dan centang mata pelajaran yang diujikan pada tanggal tersebut.</p>
+        <div class="bg-blue-50/40 border border-blue-100 rounded-2xl p-4 mb-6 space-y-4">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs font-bold text-gray-700 mb-1">Tanggal Ujian</label>
+              <input type="date" id="sched-date-input" onchange="autoSetDayName()" class="w-full border border-gray-300 rounded-xl px-3 py-2 text-xs font-semibold">
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-gray-700 mb-1">Nama Hari</label>
+              <input type="text" id="sched-day-input" readonly placeholder="Otomatis terisi dari tanggal..." class="w-full border border-gray-300 rounded-xl px-3 py-2 text-xs font-semibold bg-gray-100 text-gray-600 cursor-not-allowed">
+            </div>
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-gray-700 mb-2">Pilih Mata Pelajaran Untuk Hari Ini:</label>
+            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">${checks || '<p class="text-xs text-gray-400">Silakan input mata pelajaran terlebih dahulu.</p>'}</div>
+          </div>
+          <button onclick="addSchedule()" class="bg-blue-600 hover:bg-blue-700 text-white text-xs md:text-sm font-bold px-5 py-2.5 rounded-xl transition shadow-sm">+ Tambah Jadwal Hari Ujian</button>
+        </div>
+        <h4 class="text-xs font-bold text-gray-700 mb-3">Daftar Jadwal Berdasarkan Hari & Tanggal:</h4>
+        <div class="space-y-3">${rows || '<p class="text-xs text-gray-400 italic">Belum ada jadwal yang diset.</p>'}</div>
+      </div>
+    </div>`;
+}
+function autoSetDayName() {
+  const v = document.getElementById('sched-date-input').value;
+  const el = document.getElementById('sched-day-input');
+  if (!v) { el.value = ''; return; }
+  const d = new Date(v + 'T00:00:00');
+  el.value = ['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'][d.getDay()];
+}
+async function addSchedule() {
+  const date = document.getElementById('sched-date-input').value;
+  const day = document.getElementById('sched-day-input').value.trim();
+  const picked = Array.from(document.querySelectorAll('input[name="sched-subj-check"]:checked')).map(el => appData.subjects[Number(el.value)]);
+  if (!date || !day) { showAlertModal('Perhatian', 'Silakan pilih tanggal ujian terlebih dahulu!', false); return; }
+  if (!picked.length) { showAlertModal('Perhatian', 'Silakan pilih minimal 1 mata pelajaran!', false); return; }
+  if (appData.schedule.some(s => s.date === date)) { showAlertModal('Perhatian', 'Tanggal tersebut sudah ada di jadwal. Hapus dulu jika ingin mengubahnya.', false); return; }
+  appData.schedule.push({ id: String(Date.now()), date, day, subjects: picked });
+  appData.schedule.sort((a, b) => a.date.localeCompare(b.date));
+  await persist('Berhasil', `Jadwal ujian ${day}, ${fmtDate(date)} berhasil ditambahkan.`);
+}
+function removeSchedule(id) {
+  const item = appData.schedule.find(s => s.id === id);
+  const info = item ? `${item.day}, ${fmtDate(item.date)}` : 'hari ini';
+  showConfirmModal('Hapus Jadwal Ujian', `Apakah Anda yakin ingin menghapus jadwal ujian untuk ${info}?`, async () => {
+    appData.schedule = appData.schedule.filter(s => s.id !== id);
+    await persist('Berhasil', `Jadwal ujian ${info} berhasil dihapus.`);
+  });
+}
+
+/* ---------- Tab Link ---------- */
+function renderLinksTab() {
+  if (!selectedLinkClass && appData.classes.length) selectedLinkClass = appData.classes[0];
+  if (!appData.classes.length) return `<div class="bg-white rounded-2xl p-6 shadow-sm text-center text-gray-500 text-sm">Tambahkan kelas terlebih dahulu.</div>`;
+
+  const tabs = appData.classes.map((c, i) => `
+    <button onclick="selectLinkClass(${i})" class="px-3 py-1.5 rounded-lg text-xs font-bold transition ${selectedLinkClass === c ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}">Kelas ${esc(c)}</button>`).join(' ');
+
+  const sim = (appData.simulationLinks && appData.simulationLinks[selectedLinkClass]) || '';
+  const classLinks = (appData.links && appData.links[selectedLinkClass]) || {};
+
+  const forms = (appData.subjects || []).map((subj, si) => {
+    const items = classLinks[subj] || [];
+    const rows = items.map((it, idx) => `
+      <div class="flex gap-2 items-center mb-2">
+        <input type="text" placeholder="URL Google Form" value="${esc(it.url)}" onchange="updateLinkItem(${si}, ${idx}, 'url', this.value)" class="flex-1 border border-gray-300 rounded-xl px-2.5 py-1.5 text-xs">
+        <input type="text" placeholder="Rombel (opsional, mis. IX A, B)" value="${esc(it.label)}" onchange="updateLinkItem(${si}, ${idx}, 'label', this.value)" class="w-1/3 border border-gray-300 rounded-xl px-2.5 py-1.5 text-xs">
+        <button onclick="removeLinkItem(${si}, ${idx})" class="text-red-500 hover:text-red-700 text-xs font-bold px-2 py-1 bg-red-50 rounded-lg">✕</button>
+      </div>`).join('');
+    return `
+      <div class="bg-gray-50 border border-gray-200 rounded-2xl p-4">
+        <div class="flex items-center justify-between mb-3">
+          <h4 class="text-xs font-bold text-gray-800">${esc(subj)}</h4>
+          <button onclick="addLinkItem(${si})" class="text-xs bg-blue-50 text-blue-600 hover:bg-blue-100 font-bold px-2.5 py-1 rounded-lg transition">+ Tambah Link Form</button>
+        </div>
+        ${rows || '<p class="text-xs text-gray-400 italic">Belum ada link diisi.</p>'}
+      </div>`;
+  }).join('');
+
+  return `
+    <div class="bg-white rounded-2xl p-5 md:p-6 shadow-sm border border-gray-200/80 space-y-6">
+      <div>
+        <h3 class="text-sm font-bold text-gray-800 mb-1">Kelola Link Soal Google Form & Simulasi</h3>
+        <p class="text-xs text-gray-500 mb-4">Pilih kelas lalu isi URL Google Form untuk masing-masing mata pelajaran. Klik "Simpan Semua Link Soal" untuk menyimpan ke Spreadsheet.</p>
+        <div class="flex flex-wrap gap-2 mb-6">${tabs}</div>
+        <div class="space-y-6">
+          <div class="bg-amber-50/50 border border-amber-200 rounded-2xl p-4">
+            <label class="block text-xs font-bold text-amber-900 mb-1">Link Soal Simulasi (Kelas ${esc(selectedLinkClass)})</label>
+            <input type="text" id="sim-link-input" value="${esc(sim)}" placeholder="Tempel link Google Form simulasi" class="w-full border border-gray-300 rounded-xl px-3 py-2 text-xs">
+            <button onclick="saveSimLink()" class="mt-2 text-xs bg-amber-600 hover:bg-amber-700 text-white font-bold px-3 py-1.5 rounded-lg transition">Simpan Link Simulasi</button>
+          </div>
+          <div class="space-y-3">
+            <div class="flex items-center justify-between">
+              <h4 class="text-xs font-extrabold text-gray-700">Link Soal Utama Per Mapel (Kelas ${esc(selectedLinkClass)}):</h4>
+              <button onclick="saveAllLinks()" class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-4 py-2 rounded-xl transition shadow-sm">Simpan Semua Link Soal</button>
+            </div>
+            ${forms}
+          </div>
+        </div>
+      </div>
+    </div>`;
+}
+function selectLinkClass(i) { selectedLinkClass = appData.classes[i]; renderAdminDashboard(); }
+
+function ensureLinkArr(subj) {
+  if (!appData.links) appData.links = {};
+  if (!appData.links[selectedLinkClass]) appData.links[selectedLinkClass] = {};
+  if (!appData.links[selectedLinkClass][subj]) appData.links[selectedLinkClass][subj] = [];
+  return appData.links[selectedLinkClass][subj];
+}
+function addLinkItem(si) {
+  ensureLinkArr(appData.subjects[si]).push({ url: '', label: '' });
+  renderAdminDashboard();
+}
+function updateLinkItem(si, idx, key, val) {
+  const arr = ensureLinkArr(appData.subjects[si]);
+  if (arr[idx]) arr[idx][key] = val.trim();
+}
+function removeLinkItem(si, idx) {
+  const subj = appData.subjects[si];
+  const arr = ensureLinkArr(subj);
+  const lbl = arr[idx] && arr[idx].label ? `(${arr[idx].label})` : '';
+  showConfirmModal('Hapus Link Soal', `Apakah Anda yakin ingin menghapus link soal ${subj} ${lbl} pada Kelas ${selectedLinkClass}?`, async () => {
+    arr.splice(idx, 1);
+    await persist('Berhasil', 'Link soal berhasil dihapus.');
+  });
+}
+async function saveSimLink() {
+  const val = document.getElementById('sim-link-input').value.trim();
+  if (val && !isHttp(val)) { showAlertModal('Perhatian', 'Link harus diawali http atau https.', false); return; }
+  appData.simulationLinks[selectedLinkClass] = val;
+  await persist('Berhasil', `Link simulasi kelas ${selectedLinkClass} berhasil disimpan!`);
+}
+async function saveAllLinks() {
+  /* validasi URL */
+  const cl = appData.links[selectedLinkClass] || {};
+  for (const subj of Object.keys(cl)) {
+    for (const it of cl[subj]) {
+      if (it.url && !isHttp(it.url)) {
+        showAlertModal('Perhatian', `URL pada mapel "${subj}" harus diawali http atau https.`, false);
+        return;
+      }
+    }
+  }
+  await persist('Berhasil', `Semua link soal ujian kelas ${selectedLinkClass} berhasil disimpan!`);
+}
+
+/* ---------- Kosongkan data ---------- */
+function resetDataDefault() {
+  showConfirmModal('Konfirmasi Kosongkan Data',
+    'Tindakan ini akan mengosongkan seluruh data kelas, mata pelajaran, jadwal, dan link soal, KECUALI Pengaturan General & Akses. Yakin ingin melanjutkan?',
+    () => {
+      setTimeout(() => {
+        showConfirmModal('Konfirmasi Ulang (Peringatan Terakhir)',
+          'APAKAH ANDA BENAR-BENAR YAKIN? Seluruh data kelas, mapel, jadwal, dan link ujian akan DIKOSONGKAN PERMANEN dari Spreadsheet. Pengaturan General & Akses tidak akan berubah.',
+          async () => {
+            appData.classes = []; appData.subjects = []; appData.schedule = [];
+            appData.simulationLinks = {}; appData.links = {};
+            selectedLinkClass = '';
+            await persist('Berhasil', 'Seluruh data kelas, mapel, jadwal, dan link berhasil dikosongkan. Pengaturan General & Akses tetap tersimpan.');
+          }, 'Ya, Kosongkan Semua Data');
+      }, 150);
+    }, 'Lanjutkan');
+}
+
+/* =====================================================
+ *  INIT
+ * ===================================================== */
+async function init() {
+  icons();
+  try {
+    await loadPublic(true);
+    renderHome();
+  } catch (e) {
+    showLoadError(e);
+  }
+}
+init();
+</script>
+</body>
+</html>
