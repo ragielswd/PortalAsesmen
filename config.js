@@ -10,5 +10,5 @@
  * di server (password admin di-hash dan jam akses dicek oleh server).
  */
 window.PORTAL_CONFIG = {
-  API_URL: 'https://script.google.com/macros/s/AKfycbwQFc0GMc7sJBHRCeitAjFzXlu4H4Eqkn8VG2wCPnKzAXsFnqAVmB38pzPKjeCsG24LLg/exec'
+  API_URL: 'https://script.google.com/macros/s/AKfycbyVpiv0FFWFNfs5jex7wOGozsfOn9IKq6NB1bflkZvXW0lJ74eiSOG64mbpRew2_6BX1Q/exec'
 };
